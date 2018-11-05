@@ -267,6 +267,36 @@ class TransferShapeKeyOperator(bpy.types.Operator):
         col.prop(self, "increment_radius")
         col.prop(self, "use_one_vertex")
 
+# Remove all Shape Keys in source mesh Button (Operator)
+# ----------------------------------------------------------
+
+class RemoveShapeKeyOperator(bpy.types.Operator):
+    """Remove all Shape Keys in source mesh"""
+    bl_idname = "fblah.remove_shape_keys"
+    bl_label = "Remove Shape Keys in src"
+    bl_description = 'Remove all Shape Keys in source mesh'
+    bl_context = 'objectmode'
+    bl_options = {'REGISTER', 'INTERNAL','UNDO'}
+
+    @classmethod
+    def poll(cls, context):
+        skt = bpy.context.scene.shapekeytransferSettings
+        return (skt.src_mesh is not None)
+
+    def execute(self, context):
+        global SKT
+        skt = bpy.context.scene.shapekeytransferSettings        
+        if(skt.src_mesh):
+            ob = SKT.get_parent(skt.src_mesh)
+            if(ob.data.shape_keys):
+                for x in ob.data.shape_keys.key_blocks:
+                    ob.shape_key_remove(x)
+            self.report({'INFO'}, "Removed all shape keys in source mesh!")
+        else:
+            self.report({'ERROR'}, "Select a valid source mesh!")            
+        return {'FINISHED'}
+    
+
 # Manage customshapekeylist items (Operator)
 # ----------------------------------------------------------
 
@@ -449,6 +479,8 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
         layout.prop(skt, "src_mesh", text="Source Mesh") 
         layout.prop(skt, "dest_mesh", text="Destination Mesh")
         layout.operator('fblah.transfer_shape_keys', icon='ALIGN')
+        layout.separator()
+        layout.operator('fblah.remove_shape_keys', icon='CANCEL')
 
         layout.separator()
         layout.label("Excluded Shape Keys")
