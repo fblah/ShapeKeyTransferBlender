@@ -289,8 +289,13 @@ class RemoveShapeKeyOperator(bpy.types.Operator):
         if(skt.src_mesh):
             ob = SKT.get_parent(skt.src_mesh)
             if(ob.data.shape_keys):
+                basis = None
                 for x in ob.data.shape_keys.key_blocks:
-                    ob.shape_key_remove(x)
+                    if(basis):
+                        ob.shape_key_remove(x)
+                    else:
+                        basis = x
+                ob.shape_key_remove(basis)
             self.report({'INFO'}, "Removed all shape keys in source mesh!")
         else:
             self.report({'ERROR'}, "Select a valid source mesh!")            
