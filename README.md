@@ -1,4 +1,4 @@
-## Shape Key Transfer for Blender
+## Shape Key Tools for Blender
 <!-- BADGES/ -->
 <span class="badge-patreon"><a href="https://www.patreon.com/fBlah" title="Donate to this project using Patreon"><img src="https://img.shields.io/badge/Patreon-donate-orange.svg?logo=patreon&longCache=true&style=popout-square" alt="Patreon donate button" /></a></span>
 <span class="badge-buymeacoffee"><a href="https://www.buymeacoff.ee/fBlah" title="Donate to this project using Buy Me A Coffee"><img src="https://img.shields.io/badge/Give-coffee-8b7355.svg?logo=coffeescript&longCache=true&style=popout-square" alt="Buy Me A Coffee donate button" /></a></span>
@@ -37,6 +37,8 @@ When Use Closest Vertex is off it will average the locations of all nearby verti
 Sometimes it is good to duplicate the source mesh and remove the vertices you fell may not be required to affect the destination mesh. 
 
 One example incase of a moustache and a face: Duplicate the face and delete all the vertices except the ones around the lips which are most likely to influence the moustache and use the resulting mesh as source to copy shape keys to your destination moustache hair cards or mesh.
+
+Will be adding more functionality to this addon if required. You can also delete all shape keys in a mesh easily with this tool.
 
 ##
 
