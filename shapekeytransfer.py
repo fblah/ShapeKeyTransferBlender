@@ -221,6 +221,18 @@ class ShapeKeyTransfer:
         keys = list(set(keys))
         self.excluded_shape_keys = keys
 
+    #get shape keys of a  mesh
+    def get_shape_keys_mesh(self, mesh):
+        obj = self.get_parent(mesh)
+        keys = []
+        if(not hasattr(obj.data.shape_keys, "key_blocks")):
+            self.message = "There are no Shape Keys in the mesh!"
+            return True
+        for shape_key_iter in obj.data.shape_keys.key_blocks:
+            keys.append(shape_key_iter.name)
+        self.message = keys
+        return False
+
 # Instantiate the class
 # ----------------------------------------------------------
 
@@ -240,6 +252,61 @@ def can_transfer_keys():
     else:
         return False
 
+# Copy all Shape Key names to clipboard Button (Operator)
+# ----------------------------------------------------------
+
+class CopyKeyNamesOperator(bpy.types.Operator):
+    """Copy all Shape Key names to clipboard"""
+    bl_idname = "fblah.copy_key_names"
+    bl_label = "Copy Shape Key Names"
+    bl_description = "Copy Shape Key Names from Source Mesh to clipboard"
+    bl_options = {'INTERNAL'}
+
+    @classmethod
+    def poll(cls, context):
+        skt = bpy.context.scene.shapekeytransferSettings
+        return (skt.src_mesh is not None)
+
+    def execute(self, context):
+        global SKT
+        skt = bpy.context.scene.shapekeytransferSettings        
+        if(skt.src_mesh):
+            if(SKT.get_shape_keys_mesh(skt.src_mesh)):
+                self.report({'INFO'}, SKT.message)                
+            else:
+                keys = SKT.message
+                temp_str = ""
+                for key in keys:
+                    if(key == "Basis"):
+                        continue
+                    temp_str += key + "\n"
+                bpy.context.window_manager.clipboard = temp_str
+                self.report({'INFO'}, "Copied to clipboard")
+        else:
+            self.report({'INFO'}, "Invalid Source Mesh")
+        return{'FINISHED'}
+
+# Copy all Shape Key names from clipboard Button (Operator)
+# ----------------------------------------------------------
+
+class InsertKeyNamesOperator(bpy.types.Operator):
+    """Copy all Shape Key names from clipboard"""
+    bl_idname = "fblah.insert_key_names"
+    bl_label = "Insert Shape Key Names"
+    bl_description = "Insert Shape Key Names from clipboard. Each name in one line"
+    bl_options = {'INTERNAL'}   
+
+    def execute(self, context):
+        scn = context.scene
+        for key in bpy.context.window_manager.clipboard.split("\n"):
+            if(len(key)):
+                item = scn.customshapekeylist.add()
+                item.name = key
+                item.obj_type = "STRING"
+                item.obj_id = len(scn.customshapekeylist)
+                scn.customshapekeylist_index = len(scn.customshapekeylist)-1
+        self.report({'INFO'}, "Added shape key names from clipboard")
+        return{'FINISHED'}
 # Transfer Shape Keys Button (Operator)
 # ----------------------------------------------------------
 
@@ -409,14 +476,14 @@ class CUSTOM_OT_actions(bpy.types.Operator):
             self.report({'INFO'}, info)
         
         elif self.action == 'DEFAULT':
-                for key in SKT.get_default_excluded_keys():                    
-                    item = scn.customshapekeylist.add()
-                    item.name = key
-                    item.obj_type = "STRING"
-                    item.obj_id = len(scn.customshapekeylist)
-                    scn.customshapekeylist_index = len(scn.customshapekeylist)-1
-                    info = '"%s" added to list' % (item.name)
-                    self.report({'INFO'}, info)
+            for key in SKT.get_default_excluded_keys():                    
+                item = scn.customshapekeylist.add()
+                item.name = key
+                item.obj_type = "STRING"
+                item.obj_id = len(scn.customshapekeylist)
+                scn.customshapekeylist_index = len(scn.customshapekeylist)-1
+                info = '"%s" added to list' % (item.name)
+                self.report({'INFO'}, info)
         
         return {"FINISHED"}
 
@@ -549,11 +616,15 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
         col.separator()
         col.operator("customshapekeylist.list_action", icon='TRIA_UP', text="").action = 'UP'
         col.operator("customshapekeylist.list_action", icon='TRIA_DOWN', text="").action = 'DOWN'
-        col.operator("customshapekeylist.list_action", icon='RADIO', text="").action = 'DEFAULT'
+        col.operator("customshapekeylist.list_action", icon='LOAD_FACTORY', text="").action = 'DEFAULT'
 
         row = layout.row()
-        col = row.column(align=True)
-        
+        col = row.column(align=True)        
         row = col.row(align=True)
         row.operator("customshapekeylist.clear_list", icon="X")
         row.operator("customshapekeylist.remove_duplicates", icon="GHOST")
+        row = layout.row()
+        col = row.column(align=True)        
+        row = col.row(align=True)
+        row.operator("fblah.copy_key_names", icon="COPYDOWN")
+        row.operator("fblah.insert_key_names", icon="IMPORT")
