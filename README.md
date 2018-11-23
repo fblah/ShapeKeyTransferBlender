@@ -2,6 +2,7 @@
 <!-- BADGES/ -->
 <span class="badge-patreon"><a href="https://www.patreon.com/fBlah" title="Donate to this project using Patreon"><img src="https://img.shields.io/badge/Patreon-donate-orange.svg?logo=patreon&longCache=true&style=popout-square" alt="Patreon donate button" /></a></span>
 <span class="badge-buymeacoffee"><a href="https://www.buymeacoff.ee/fBlah" title="Donate to this project using Buy Me A Coffee"><img src="https://img.shields.io/badge/Give-coffee-8b7355.svg?logo=coffeescript&longCache=true&style=popout-square" alt="Buy Me A Coffee donate button" /></a></span>
+<span class="badge-blenderartists"><a href="https://blenderartists.org/t/free-shape-key-transfer-addon" title="Link to Blender Artists forum post"><img src="https://img.shields.io/badge/Blender-Artists-orange.svg?logo=blender&longCache=true&style=popout-square" alt="Blender Artists Forum Post" /></a></span>
 
 Tested with Blender 2.79
 
