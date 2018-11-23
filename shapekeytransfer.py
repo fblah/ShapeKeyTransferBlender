@@ -122,7 +122,7 @@ class ShapeKeyTransfer:
             self.do_once_per_vertex = False
 
         if(len(self.src_chosen_vertices) == 0):
-            self.message = ("Failed to find surrounding vertices | Try increasing increment radius | vertex index " + self.current_vertex_index + " at shape key index " + self.src_shape_key_index)
+            self.message = ("Failed to find surrounding vertices | Try increasing increment radius | vertex index " + str(self.current_vertex_index) + " at shape key index " + str(self.src_shape_key_index))
             self.current_vertex_index += 1
             return True
 
@@ -154,12 +154,14 @@ class ShapeKeyTransfer:
                 return ob
         return None
 
-    def transfer_shape_keys(self, src, dest):
+    def transfer_shape_keys(self, src, dest, use_only_excluded_shape_keys = False):
         self.src_mesh   = self.get_parent(src)
         self.dest_mesh  = self.get_parent(dest)
         self.src_mwi    = self.src_mesh.matrix_world.inverted()
         
         self.current_vertex_index = 0
+
+        local_shape_key_list = [] # used only when considering excluded shape keys
 
         if(not(self.src_mesh and self.dest_mesh)):
             self.message = "The meshes are not valid!"
@@ -174,24 +176,33 @@ class ShapeKeyTransfer:
             self.dest_mesh.shape_key_add(name="Basis")
         # add missing shape keys to dest_mesh    
         for src_shape_key_iter in self.src_mesh.data.shape_keys.key_blocks:
-            valid_shape_key = False    
+            valid_shape_key = False            
+            if(use_only_excluded_shape_keys and (src_shape_key_iter.name in self.excluded_shape_keys)):
+                local_shape_key_list.append(src_shape_key_iter.name)                
             for dest_shape_key_iter in self.dest_mesh.data.shape_keys.key_blocks:
                 if(src_shape_key_iter.name == dest_shape_key_iter.name):
                     valid_shape_key = True
             if(not valid_shape_key):
                 self.dest_mesh.shape_key_add(name=src_shape_key_iter.name)
-        
+                
+
         # all vertices in destination mesh
         while(self.current_vertex_index < self.total_vertices):
             self.do_once_per_vertex = True
-            # Iterate all shape keys 
-            for shape_key_iter in self.src_mesh.data.shape_keys.key_blocks:    
-                key_name = shape_key_iter.name
-                # exclude shapekeys not needed
-                if(not (key_name in self.excluded_shape_keys)):
-                    self.update_global_shapekey_indices(shape_key_iter.name)            
+            if(use_only_excluded_shape_keys):
+                for key_name in local_shape_key_list:
+                    self.update_global_shapekey_indices(key_name)            
                     if(self.update_vertex()):
-                        return c
+                        return True
+            else:
+                # Iterate all shape keys 
+                for shape_key_iter in self.src_mesh.data.shape_keys.key_blocks:    
+                    key_name = shape_key_iter.name
+                    # exclude shapekeys not needed
+                    if(not (key_name in self.excluded_shape_keys)):
+                        self.update_global_shapekey_indices(key_name)            
+                        if(self.update_vertex()):
+                            return True
             self.current_vertex_index += 1
         self.message = "Transferred Shape Keys successfully!"
         return False
@@ -253,7 +264,45 @@ class TransferShapeKeyOperator(bpy.types.Operator):
         SKT.increment_radius = self.increment_radius
         SKT.use_one_vertex   = self.use_one_vertex
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
-        result = SKT.transfer_shape_keys(skt.src_mesh,skt.dest_mesh)
+        result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh)
+        if(result):
+            self.report({'ERROR'}, SKT.message)            
+        else:
+            self.report({'INFO'}, SKT.message)
+        return {'FINISHED'}
+    
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.label(text="Vertex influence:")       
+        col.prop(self, "increment_radius")
+        col.prop(self, "use_one_vertex")
+
+# Transfer Shape Keys in excluded shape keys list Button  (Operator)
+# ----------------------------------------------------------
+
+class TransferExcludedShapeKeyOperator(bpy.types.Operator):
+    """Transfers shape keys from excluded shape keys list in selected meshes"""
+    bl_idname = "fblah.transfer_excluded_shape_keys"
+    bl_label = "Transfer Excluded Shape Keys Only"
+    bl_description = 'The two meshes must be overlapping or really close'
+    bl_context = 'objectmode'
+    bl_options = {'REGISTER', 'INTERNAL','UNDO'}
+
+    increment_radius = TransferShapeKeysOperatorUI.increment_radius
+    use_one_vertex   = TransferShapeKeysOperatorUI.use_one_vertex
+    
+    @classmethod
+    def poll(cls, context):
+        return can_transfer_keys()
+
+    def execute(self, context):
+        global SKT
+        skt = bpy.context.scene.shapekeytransferSettings        
+        SKT.increment_radius = self.increment_radius
+        SKT.use_one_vertex   = self.use_one_vertex
+        SKT.update_shape_keys_list(context.scene.customshapekeylist)
+        result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh, True)
         if(result):
             self.report({'ERROR'}, SKT.message)            
         else:
@@ -483,7 +532,8 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
         
         layout.prop(skt, "src_mesh", text="Source Mesh") 
         layout.prop(skt, "dest_mesh", text="Destination Mesh")
-        layout.operator('fblah.transfer_shape_keys', icon='ALIGN')
+        layout.operator('fblah.transfer_shape_keys', icon='ARROW_LEFTRIGHT')
+        layout.operator('fblah.transfer_excluded_shape_keys', icon='ALIGN')
         layout.separator()
         layout.operator('fblah.remove_shape_keys', icon='CANCEL')
 
