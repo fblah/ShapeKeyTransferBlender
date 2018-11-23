@@ -26,6 +26,14 @@ When Use Closest Vertex is off it will average the locations of all nearby verti
 
 ##
 
+### Features:
+
+- Transfer Shape Keys between meshes of different topologies
+
+- Manage what shape keys are transferred by adding exclusions
+
+- Copy all shape key names of a mesh to clipboard
+
 ### Example Use Cases:
 
 - Copy shape keys from face to moustache or eyebrow hair cards.
