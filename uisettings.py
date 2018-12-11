@@ -71,6 +71,12 @@ class TransferShapeKeysOperatorUI(PropertyGroup):
         description="Use the position of the closet vertex only or several vertices within the range.",
         default = True
         )
+    
+    skip_unpaired_vertices = BoolProperty(
+        name="Skip unpaired vertices",
+        description="Use this to skip vertices which cant find naerby vertices in source mesh to copy position from.",
+        default = True
+        )
 
     increment_radius = FloatProperty(
         name = "Increment Radius",
@@ -79,6 +85,15 @@ class TransferShapeKeysOperatorUI(PropertyGroup):
         soft_min = 0.01,
         soft_max  = 1,
         min = 0.00000001
+        )
+    
+    number_of_increments = IntProperty(
+        name = "Number of increments",
+        description = "Number of times to increment selection radius before giving up.",
+        default = 2,
+        soft_min = 1,
+        soft_max  = 50,
+        min = 1
         )
 
 # Property of 1 item in the excluded shape key list

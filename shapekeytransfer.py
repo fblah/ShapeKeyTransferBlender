@@ -46,6 +46,7 @@ class ShapeKeyTransfer:
     def __init__(self):
         # Increment radius used to select nearby vertices in the source mesh for copying its positions to the destination mesh vertex
         self.increment_radius = .05
+        self.number_of_increments = 20
         # set total vertices incase you want to run for less number of vertices also set specify_end_vertex to True
         # set current_vertex index incase you want to continue from another index
         # use_one_vertex will transfer the weight of the closest vertex within the selection sphere
@@ -67,6 +68,7 @@ class ShapeKeyTransfer:
         self.current_vertex       = None
         self.src_chosen_vertices  = []
         self.message              = ""
+        self.skip_vertices_with_no_pair = False
 
     # select required vertices within a radius and return array of indices
     def select_vertices(self, center, radius):            
@@ -99,7 +101,7 @@ class ShapeKeyTransfer:
     # this select function initially starts (if level=0) by matching a point in same space as the source mesh and if it cant find similar positioned point we increment search radius   
     def select_required_verts(self, vert, rad, level=0):    
         verts = []
-        if(level > 20):
+        if(level > self.number_of_increments):
             return verts 
         verts = self.select_vertices(vert, rad)    
         if(len(verts) == 0):
@@ -124,7 +126,10 @@ class ShapeKeyTransfer:
         if(len(self.src_chosen_vertices) == 0):
             self.message = ("Failed to find surrounding vertices | Try increasing increment radius | vertex index " + str(self.current_vertex_index) + " at shape key index " + str(self.src_shape_key_index))
             self.current_vertex_index += 1
-            return True
+            if(not self.skip_vertices_with_no_pair):
+                return True
+            else:
+                return False
 
         result_position = Vector()    
         for v in self.src_chosen_vertices:
@@ -189,6 +194,7 @@ class ShapeKeyTransfer:
         # all vertices in destination mesh
         while(self.current_vertex_index < self.total_vertices):
             self.do_once_per_vertex = True
+            print("Vertex: " + str(self.current_vertex_index) + "/" + str(self.total_vertices))
             if(use_only_excluded_shape_keys):
                 for key_name in local_shape_key_list:
                     self.update_global_shapekey_indices(key_name)            
@@ -320,6 +326,8 @@ class TransferShapeKeyOperator(bpy.types.Operator):
 
     increment_radius = TransferShapeKeysOperatorUI.increment_radius
     use_one_vertex   = TransferShapeKeysOperatorUI.use_one_vertex
+    skip_unpaired_vertices = TransferShapeKeysOperatorUI.skip_unpaired_vertices
+    number_of_increments = TransferShapeKeysOperatorUI.number_of_increments
     
     @classmethod
     def poll(cls, context):
@@ -330,6 +338,9 @@ class TransferShapeKeyOperator(bpy.types.Operator):
         skt = bpy.context.scene.shapekeytransferSettings        
         SKT.increment_radius = self.increment_radius
         SKT.use_one_vertex   = self.use_one_vertex
+        SKT.skip_vertices_with_no_pair = self.skip_unpaired_vertices
+        SKT.number_of_increments = self.number_of_increments
+
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
         result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh)
         if(result):
@@ -344,6 +355,8 @@ class TransferShapeKeyOperator(bpy.types.Operator):
         col.label(text="Vertex influence:")       
         col.prop(self, "increment_radius")
         col.prop(self, "use_one_vertex")
+        col.prop(self, "skip_unpaired_vertices")
+        col.prop(self, "number_of_increments")
 
 # Transfer Shape Keys in excluded shape keys list Button  (Operator)
 # ----------------------------------------------------------
@@ -358,7 +371,9 @@ class TransferExcludedShapeKeyOperator(bpy.types.Operator):
 
     increment_radius = TransferShapeKeysOperatorUI.increment_radius
     use_one_vertex   = TransferShapeKeysOperatorUI.use_one_vertex
-    
+    skip_unpaired_vertices = TransferShapeKeysOperatorUI.skip_unpaired_vertices
+    number_of_increments = TransferShapeKeysOperatorUI.number_of_increments
+
     @classmethod
     def poll(cls, context):
         return can_transfer_keys()
@@ -368,6 +383,9 @@ class TransferExcludedShapeKeyOperator(bpy.types.Operator):
         skt = bpy.context.scene.shapekeytransferSettings        
         SKT.increment_radius = self.increment_radius
         SKT.use_one_vertex   = self.use_one_vertex
+        SKT.skip_vertices_with_no_pair = self.skip_unpaired_vertices
+        SKT.number_of_increments = self.number_of_increments
+        
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
         result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh, True)
         if(result):
@@ -382,6 +400,8 @@ class TransferExcludedShapeKeyOperator(bpy.types.Operator):
         col.label(text="Vertex influence:")       
         col.prop(self, "increment_radius")
         col.prop(self, "use_one_vertex")
+        col.prop(self, "skip_unpaired_vertices")
+        col.prop(self, "number_of_increments")
 
 # Remove all Shape Keys in source mesh Button (Operator)
 # ----------------------------------------------------------
