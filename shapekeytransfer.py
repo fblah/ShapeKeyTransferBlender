@@ -76,8 +76,8 @@ class ShapeKeyTransfer:
         closest_vertex_index = -1
         radius_vec = center + Vector((0, 0, radius))        
         # put selection sphere in local coords.
-        lco = self.src_mwi * center
-        r   = self.src_mwi * (radius_vec) - lco
+        lco = self.src_mwi @ center
+        r   = self.src_mwi @ (radius_vec) - lco
         closest_length = r.length        
 
         # select verts within radius
@@ -111,7 +111,7 @@ class ShapeKeyTransfer:
 
     # set the new vertex position on the shape key
     def set_vertex_position(self, v_pos):    
-        self.dest_mesh.data.shape_keys.key_blocks[self.dest_shape_key_index].data[self.current_vertex_index].co = v_pos    
+        self.dest_mesh.data.shape_keys.key_blocks[self.dest_shape_key_index].data[self.current_vertex_index].co = v_pos
 
     # update 1 vertex of destination mesh
     def update_vertex(self):
@@ -119,7 +119,8 @@ class ShapeKeyTransfer:
             return False
 
         if(self.do_once_per_vertex):
-            self.current_vertex = self.dest_mesh.matrix_world * self.dest_mesh.data.shape_keys.key_blocks[0].data[self.current_vertex_index].co       
+            #mathutils now uses the PEP 465 binary operator for multiplying matrices change * to @
+            self.current_vertex = self.dest_mesh.matrix_world @ self.dest_mesh.data.shape_keys.key_blocks[0].data[self.current_vertex_index].co       
             self.src_chosen_vertices = self.select_required_verts(self.current_vertex,0)   
             self.do_once_per_vertex = False
 
@@ -598,10 +599,10 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
     bl_label = "Shape Key Tools"
     bl_idname = "OBJECT_SHAPE_KEY_TRANSFER_PANEL"
     bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
+    bl_region_type = 'UI'
     bl_context = 'objectmode'
     bl_category = "Tools"    
-
+    
     @classmethod
     def poll(self,context):        
         return context.object is not None
@@ -615,34 +616,34 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
         icon_collapse = "DISCLOSURE_TRI_DOWN"
         
         if(not can_transfer_keys()):
-            layout.label("Select required meshes", icon = 'INFO')
+            layout.label(text="Select required meshes", icon = 'INFO')
         
         layout.prop(skt, "src_mesh", text="Source Mesh") 
         layout.prop(skt, "dest_mesh", text="Destination Mesh")
         layout.operator('fblah.transfer_shape_keys', icon='ARROW_LEFTRIGHT')
-        layout.operator('fblah.transfer_excluded_shape_keys', icon='ALIGN')
+        layout.operator('fblah.transfer_excluded_shape_keys', icon='KEYINGSET') #ALIGN ICON no longer available
         layout.separator()
         layout.operator('fblah.remove_shape_keys', icon='CANCEL')
 
         layout.separator()
-        layout.label("Excluded Shape Keys")
+        layout.label(text="Excluded Shape Keys")
         rows = 2
         row = layout.row()
         row.template_list("CUSTOM_UL_items", "", scn, "customshapekeylist", scn, "customshapekeylist_index", rows=rows)
 
         col = row.column(align=True)
-        col.operator("customshapekeylist.list_action", icon='ZOOMIN', text="").action = 'ADD'
-        col.operator("customshapekeylist.list_action", icon='ZOOMOUT', text="").action = 'REMOVE'
+        col.operator("customshapekeylist.list_action", icon='PLUS', text="").action = 'ADD'
+        col.operator("customshapekeylist.list_action", icon='REMOVE', text="").action = 'REMOVE'
         col.separator()
         col.operator("customshapekeylist.list_action", icon='TRIA_UP', text="").action = 'UP'
         col.operator("customshapekeylist.list_action", icon='TRIA_DOWN', text="").action = 'DOWN'
-        col.operator("customshapekeylist.list_action", icon='LOAD_FACTORY', text="").action = 'DEFAULT'
+        col.operator("customshapekeylist.list_action", icon='RECOVER_LAST', text="").action = 'DEFAULT'
 
         row = layout.row()
         col = row.column(align=True)        
         row = col.row(align=True)
         row.operator("customshapekeylist.clear_list", icon="X")
-        row.operator("customshapekeylist.remove_duplicates", icon="GHOST")
+        row.operator("customshapekeylist.remove_duplicates", icon="FORCE_VORTEX")
         row = layout.row()
         col = row.column(align=True)        
         row = col.row(align=True)

@@ -43,7 +43,7 @@ When Use Closest Vertex is off it will average the locations of all nearby verti
 ##
 
 ### Note:
-Sometimes it is good to duplicate the source mesh and remove the vertices you fell may not be required to affect the destination mesh. 
+Sometimes it is good to duplicate the source mesh and remove the vertices you feel may not be required to affect the destination mesh. 
 
 One example incase of a moustache and a face: Duplicate the face and delete all the vertices except the ones around the lips which are most likely to influence the moustache and use the resulting mesh as source to copy shape keys to your destination moustache hair cards or mesh.
 
