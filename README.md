@@ -8,6 +8,8 @@
 
 Tested with Blender 2.79
 
+#### There is a separate branch for Blender 2.8
+
 Use this addon to easily transfer shape keys between meshes of different topology.
 
 Place both the meshes at origin and overlap them at the location you want the destination mesh to copy shape keys of the source mesh.
