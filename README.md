@@ -3,8 +3,12 @@
 <span class="badge-patreon"><a href="https://www.patreon.com/studiostry" title="Donate to this project using Patreon"><img src="https://img.shields.io/badge/Patreon-donate-orange.svg?logo=patreon&longCache=true&style=popout-square" alt="Patreon donate button" /></a></span>
 <span class="badge-blenderartists"><a href="https://blenderartists.org/t/free-shape-key-transfer-addon" title="Link to Blender Artists forum post"><img src="https://img.shields.io/badge/Blender-Artists-orange.svg?logo=blender&longCache=true&style=popout-square" alt="Blender Artists Forum Post" /></a></span>
 <span class="badge-gumroad"><a href="https://gumroad.com/l/NpNid" title="Subscribe to support development"><img src="https://img.shields.io/badge/Gumroad-Subscribe-darkgreen.svg?logo=gumroad&longCache=true&style=popout-square" alt="Gumroad subscribe button" /></a></span>
+<span class="badge-discord"><a href="https://discord.gg/CmgdEvw" title="Join on discord"><img src="https://img.shields.io/badge/Discord-Join-768ADC.svg?logo=discord&longCache=true&style=popout-square" alt="Discord server button" /></a></span>
+<span class="badge-youtube"><a href="https://www.youtube.com/watch?v=-zBlaedkkVs" title="Watch Tutorial on Youtube"><img src="https://img.shields.io/badge/Tutorial-Video-F40000.svg?logo=youtube&longCache=true&style=popout-square" alt="Youtube Tutorial" /></a></span>
 
 Shape Key Transfer for Blender 2.8
+
+#### Github renames the folder appending Blender 2.8 to the end when you download/clone. Please remove "." from the folder name for Blender to recognize the addon. I don't want to rename this branch as it has been linked to elsewhere.
 
 Use this addon to easily transfer shape keys between meshes of different topology.
 
