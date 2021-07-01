@@ -6,8 +6,6 @@
 
 Shape Key Transfer for Blender 2.93
 
-#### Github renames the folder appending Blender 2.8 to the end when you download/clone. Please remove "." from the folder name for Blender to recognize the addon. I don't want to rename this branch as it has been linked to elsewhere.
-
 Use this addon to easily transfer shape keys between meshes of different topology.
 
 Place both the meshes at origin and overlap them at the location you want the destination mesh to copy shape keys of the source mesh.
