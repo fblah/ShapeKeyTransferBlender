@@ -94,3 +94,6 @@ def unregister():
     bpy.utils.unregister_class(CUSTOM_OT_removeDuplicates)
     bpy.utils.unregister_class(CUSTOM_UL_items)
     bpy.utils.unregister_class(VIEW3D_PT_tools_ShapeKeyTransfer)
+    del bpy.types.Scene.shapekeytransferSettings
+    del bpy.types.Scene.customshapekeylist
+    del bpy.types.Scene.shapekeytransferOperatorSettings
