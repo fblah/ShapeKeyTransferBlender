@@ -76,8 +76,8 @@ class ShapeKeyTransfer:
         closest_vertex_index = -1
         radius_vec = center + Vector((0, 0, radius))        
         # put selection sphere in local coords.
-        lco = self.src_mwi * center
-        r   = self.src_mwi * (radius_vec) - lco
+        lco = self.src_mwi @ center
+        r   = self.src_mwi @ (radius_vec) - lco
         closest_length = r.length        
 
         # select verts within radius
@@ -111,7 +111,7 @@ class ShapeKeyTransfer:
 
     # set the new vertex position on the shape key
     def set_vertex_position(self, v_pos):    
-        self.dest_mesh.data.shape_keys.key_blocks[self.dest_shape_key_index].data[self.current_vertex_index].co = v_pos    
+        self.dest_mesh.data.shape_keys.key_blocks[self.dest_shape_key_index].data[self.current_vertex_index].co = v_pos
 
     # update 1 vertex of destination mesh
     def update_vertex(self):
@@ -119,7 +119,8 @@ class ShapeKeyTransfer:
             return False
 
         if(self.do_once_per_vertex):
-            self.current_vertex = self.dest_mesh.matrix_world * self.dest_mesh.data.shape_keys.key_blocks[0].data[self.current_vertex_index].co       
+            #mathutils now uses the PEP 465 binary operator for multiplying matrices change * to @
+            self.current_vertex = self.dest_mesh.matrix_world @ self.dest_mesh.data.shape_keys.key_blocks[0].data[self.current_vertex_index].co       
             self.src_chosen_vertices = self.select_required_verts(self.current_vertex,0)   
             self.do_once_per_vertex = False
 
@@ -181,9 +182,13 @@ class ShapeKeyTransfer:
             self.dest_mesh.shape_key_add(name="Basis")
         # add missing shape keys to dest_mesh    
         for src_shape_key_iter in self.src_mesh.data.shape_keys.key_blocks:
-            valid_shape_key = False            
+            valid_shape_key = False        
             if(use_only_excluded_shape_keys and (src_shape_key_iter.name in self.excluded_shape_keys)):
-                local_shape_key_list.append(src_shape_key_iter.name)                
+                local_shape_key_list.append(src_shape_key_iter.name)   
+            if((not use_only_excluded_shape_keys) and (src_shape_key_iter.name in self.excluded_shape_keys)):
+                continue
+            if(use_only_excluded_shape_keys and (not (src_shape_key_iter.name in self.excluded_shape_keys))):
+                continue
             for dest_shape_key_iter in self.dest_mesh.data.shape_keys.key_blocks:
                 if(src_shape_key_iter.name == dest_shape_key_iter.name):
                     valid_shape_key = True
@@ -194,7 +199,7 @@ class ShapeKeyTransfer:
         # all vertices in destination mesh
         while(self.current_vertex_index < self.total_vertices):
             self.do_once_per_vertex = True
-            print("Vertex: " + str(self.current_vertex_index) + "/" + str(self.total_vertices))
+            print("Vertex: " + str(self.current_vertex_index + 1) + "/" + str(self.total_vertices))
             if(use_only_excluded_shape_keys):
                 for key_name in local_shape_key_list:
                     self.update_global_shapekey_indices(key_name)            
@@ -323,11 +328,6 @@ class TransferShapeKeyOperator(bpy.types.Operator):
     bl_description = 'The two meshes must be overlapping or really close'
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
-
-    increment_radius = TransferShapeKeysOperatorUI.increment_radius
-    use_one_vertex   = TransferShapeKeysOperatorUI.use_one_vertex
-    skip_unpaired_vertices = TransferShapeKeysOperatorUI.skip_unpaired_vertices
-    number_of_increments = TransferShapeKeysOperatorUI.number_of_increments
     
     @classmethod
     def poll(cls, context):
@@ -335,11 +335,12 @@ class TransferShapeKeyOperator(bpy.types.Operator):
 
     def execute(self, context):
         global SKT
-        skt = bpy.context.scene.shapekeytransferSettings        
-        SKT.increment_radius = self.increment_radius
-        SKT.use_one_vertex   = self.use_one_vertex
-        SKT.skip_vertices_with_no_pair = self.skip_unpaired_vertices
-        SKT.number_of_increments = self.number_of_increments
+        skt = bpy.context.scene.shapekeytransferSettings
+        sktop = bpy.context.scene.shapekeytransferOperatorSettings 
+        SKT.increment_radius = sktop.increment_radius
+        SKT.use_one_vertex   = sktop.use_one_vertex
+        SKT.skip_vertices_with_no_pair = sktop.skip_unpaired_vertices
+        SKT.number_of_increments = sktop.number_of_increments
 
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
         result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh)
@@ -351,12 +352,13 @@ class TransferShapeKeyOperator(bpy.types.Operator):
     
     def draw(self, context):
         layout = self.layout
+        sktop = bpy.context.scene.shapekeytransferOperatorSettings 
         col = layout.column()
         col.label(text="Vertex influence:")       
-        col.prop(self, "increment_radius")
-        col.prop(self, "use_one_vertex")
-        col.prop(self, "skip_unpaired_vertices")
-        col.prop(self, "number_of_increments")
+        col.prop(sktop, "increment_radius")
+        col.prop(sktop, "use_one_vertex")
+        col.prop(sktop, "skip_unpaired_vertices")
+        col.prop(sktop, "number_of_increments")
 
 # Transfer Shape Keys in excluded shape keys list Button  (Operator)
 # ----------------------------------------------------------
@@ -369,10 +371,7 @@ class TransferExcludedShapeKeyOperator(bpy.types.Operator):
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
 
-    increment_radius = TransferShapeKeysOperatorUI.increment_radius
-    use_one_vertex   = TransferShapeKeysOperatorUI.use_one_vertex
-    skip_unpaired_vertices = TransferShapeKeysOperatorUI.skip_unpaired_vertices
-    number_of_increments = TransferShapeKeysOperatorUI.number_of_increments
+    
 
     @classmethod
     def poll(cls, context):
@@ -381,10 +380,11 @@ class TransferExcludedShapeKeyOperator(bpy.types.Operator):
     def execute(self, context):
         global SKT
         skt = bpy.context.scene.shapekeytransferSettings        
-        SKT.increment_radius = self.increment_radius
-        SKT.use_one_vertex   = self.use_one_vertex
-        SKT.skip_vertices_with_no_pair = self.skip_unpaired_vertices
-        SKT.number_of_increments = self.number_of_increments
+        sktop = bpy.context.scene.shapekeytransferOperatorSettings 
+        SKT.increment_radius = sktop.increment_radius
+        SKT.use_one_vertex   = sktop.use_one_vertex
+        SKT.skip_vertices_with_no_pair = sktop.skip_unpaired_vertices
+        SKT.number_of_increments = sktop.number_of_increments
         
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
         result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh, True)
@@ -395,13 +395,15 @@ class TransferExcludedShapeKeyOperator(bpy.types.Operator):
         return {'FINISHED'}
     
     def draw(self, context):
+        sktop = bpy.context.scene.shapekeytransferOperatorSettings
         layout = self.layout
         col = layout.column()
         col.label(text="Vertex influence:")       
-        col.prop(self, "increment_radius")
-        col.prop(self, "use_one_vertex")
-        col.prop(self, "skip_unpaired_vertices")
-        col.prop(self, "number_of_increments")
+        col.prop(sktop, "increment_radius")
+        col.prop(sktop, "use_one_vertex")
+        col.prop(sktop, "skip_unpaired_vertices")
+        col.prop(sktop, "number_of_increments")
+        
 
 # Remove all Shape Keys in source mesh Button (Operator)
 # ----------------------------------------------------------
@@ -448,7 +450,7 @@ class CUSTOM_OT_actions(bpy.types.Operator):
     bl_description = "Move items up and down, add and remove"
     bl_options = {'REGISTER'}
 
-    action = bpy.props.EnumProperty(
+    action : bpy.props.EnumProperty(
         items=(
             ('UP', "Up", ""),
             ('DOWN', "Down", ""),
@@ -598,10 +600,10 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
     bl_label = "Shape Key Tools"
     bl_idname = "OBJECT_SHAPE_KEY_TRANSFER_PANEL"
     bl_space_type = 'VIEW_3D'
-    bl_region_type = 'TOOLS'
+    bl_region_type = 'UI'
     bl_context = 'objectmode'
     bl_category = "Tools"    
-
+    
     @classmethod
     def poll(self,context):        
         return context.object is not None
@@ -615,34 +617,34 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
         icon_collapse = "DISCLOSURE_TRI_DOWN"
         
         if(not can_transfer_keys()):
-            layout.label("Select required meshes", icon = 'INFO')
+            layout.label(text="Select required meshes", icon = 'INFO')
         
         layout.prop(skt, "src_mesh", text="Source Mesh") 
         layout.prop(skt, "dest_mesh", text="Destination Mesh")
         layout.operator('fblah.transfer_shape_keys', icon='ARROW_LEFTRIGHT')
-        layout.operator('fblah.transfer_excluded_shape_keys', icon='ALIGN')
+        layout.operator('fblah.transfer_excluded_shape_keys', icon='KEYINGSET') #ALIGN ICON no longer available
         layout.separator()
         layout.operator('fblah.remove_shape_keys', icon='CANCEL')
 
         layout.separator()
-        layout.label("Excluded Shape Keys")
+        layout.label(text="Excluded Shape Keys")
         rows = 2
         row = layout.row()
         row.template_list("CUSTOM_UL_items", "", scn, "customshapekeylist", scn, "customshapekeylist_index", rows=rows)
 
         col = row.column(align=True)
-        col.operator("customshapekeylist.list_action", icon='ZOOMIN', text="").action = 'ADD'
-        col.operator("customshapekeylist.list_action", icon='ZOOMOUT', text="").action = 'REMOVE'
+        col.operator("customshapekeylist.list_action", icon='PLUS', text="").action = 'ADD'
+        col.operator("customshapekeylist.list_action", icon='REMOVE', text="").action = 'REMOVE'
         col.separator()
         col.operator("customshapekeylist.list_action", icon='TRIA_UP', text="").action = 'UP'
         col.operator("customshapekeylist.list_action", icon='TRIA_DOWN', text="").action = 'DOWN'
-        col.operator("customshapekeylist.list_action", icon='LOAD_FACTORY', text="").action = 'DEFAULT'
+        col.operator("customshapekeylist.list_action", icon='RECOVER_LAST', text="").action = 'DEFAULT'
 
         row = layout.row()
         col = row.column(align=True)        
         row = col.row(align=True)
         row.operator("customshapekeylist.clear_list", icon="X")
-        row.operator("customshapekeylist.remove_duplicates", icon="GHOST")
+        row.operator("customshapekeylist.remove_duplicates", icon="FORCE_VORTEX")
         row = layout.row()
         col = row.column(align=True)        
         row = col.row(align=True)

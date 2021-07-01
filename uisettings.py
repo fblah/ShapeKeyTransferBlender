@@ -39,7 +39,7 @@ from bpy.types import (Panel,
 
 class UISettings(PropertyGroup):
     """Mesh Selection Boxes"""
-    src_mesh = PointerProperty(
+    src_mesh : PointerProperty(
         type=bpy.types.Mesh, 
         name="Source Mesh", 
         description="Select a source mesh", 
@@ -47,7 +47,7 @@ class UISettings(PropertyGroup):
         update=None
         )
     
-    dest_mesh = PointerProperty(
+    dest_mesh : PointerProperty(
         type=bpy.types.Mesh, 
         name="Destination Mesh", 
         description="Select a destination mesh", 
@@ -60,25 +60,25 @@ class UISettings(PropertyGroup):
 
 class TransferShapeKeysOperatorUI(PropertyGroup):
     """Transfer shape key operator options and properties"""
-    specify_end_vertex = BoolProperty(
+    specify_end_vertex : BoolProperty(
         name="Specify End Vertex",
         description="Execute till last vertex specified.",
         default = False
         )
 
-    use_one_vertex = BoolProperty(
+    use_one_vertex : BoolProperty(
         name="Use Closest Vertex",
         description="Use the position of the closet vertex only or several vertices within the range.",
         default = True
         )
     
-    skip_unpaired_vertices = BoolProperty(
+    skip_unpaired_vertices : BoolProperty(
         name="Skip unpaired vertices",
         description="Use this to skip vertices which cant find naerby vertices in source mesh to copy position from.",
         default = True
         )
 
-    increment_radius = FloatProperty(
+    increment_radius : FloatProperty(
         name = "Increment Radius",
         description = "Radius to increment selection sphere.",
         default = 0.05,
@@ -87,7 +87,7 @@ class TransferShapeKeysOperatorUI(PropertyGroup):
         min = 0.00000001
         )
     
-    number_of_increments = IntProperty(
+    number_of_increments : IntProperty(
         name = "Number of increments",
         description = "Number of times to increment selection radius before giving up.",
         default = 2,

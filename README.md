@@ -4,9 +4,9 @@
 <span class="badge-discord"><a href="https://discord.gg/CmgdEvw" title="Join on discord"><img src="https://img.shields.io/badge/Discord-Join-768ADC.svg?logo=discord&longCache=true&style=popout-square" alt="Discord server button" /></a></span>
 <span class="badge-youtube"><a href="https://www.youtube.com/watch?v=-zBlaedkkVs" title="Watch Tutorial on Youtube"><img src="https://img.shields.io/badge/Tutorial-Video-F40000.svg?logo=youtube&longCache=true&style=popout-square" alt="Youtube Tutorial" /></a></span>
 
-Tested with Blender 2.79
+Shape Key Transfer for Blender 2.93
 
-#### There is a separate branch for Blender 2.8
+#### Github renames the folder appending Blender 2.8 to the end when you download/clone. Please remove "." from the folder name for Blender to recognize the addon. I don't want to rename this branch as it has been linked to elsewhere.
 
 Use this addon to easily transfer shape keys between meshes of different topology.
 
