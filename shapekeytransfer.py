@@ -22,14 +22,12 @@
 import bpy
 import bmesh
 from mathutils import Vector
-from . import bl_info
-from .uisettings import SKT_PG_settings
 
 from bpy.types import (Operator, 
                        UIList, 
                        Panel)
 
-__reload_order_index__ = 1
+# __reload_order_index__ = 1
 
 # Class which handles shape key transfers
 # ----------------------------------------------------------
@@ -260,14 +258,14 @@ def can_transfer_keys(context):
         return False
 
 
-# Copy all Shape Key names to clipboard Button (Operator)
+# Copy all Shape Key names to Clipboard Button
 # ----------------------------------------------------------
 
 class SKT_OT_copyKeyNames(Operator):
-    """Copy all Shape Key names to clipboard"""
+    """Copy all Shape Key names to Clipboard"""
     bl_idname = "skt.copy_key_names"
     bl_label = "Copy Shape Key Names"
-    bl_description = "Copy Shape Key Names from Source Mesh to clipboard"
+    bl_description = "Copy Shape Key Names from Source Mesh to Clipboard"
     bl_options = {'INTERNAL'}
 
     @classmethod
@@ -289,20 +287,20 @@ class SKT_OT_copyKeyNames(Operator):
                         continue
                     temp_str += key + "\n"
                 context.window_manager.clipboard = temp_str
-                self.report({'INFO'}, "Copied to clipboard")
+                self.report({'INFO'}, "Copied to Clipboard")
         else:
             self.report({'INFO'}, "Invalid Source Mesh")
         return{'FINISHED'}
 
 
-# Copy all Shape Key names from clipboard Button (Operator)
+# Copy all Shape Key names from clipboard Button
 # ----------------------------------------------------------
 
 class SKT_OT_insertKeyNames(Operator):
-    """Copy all Shape Key names from clipboard"""
+    """Copy all Shape Key Names from the Clipboard"""
     bl_idname = "skt.insert_key_names"
     bl_label = "Insert Shape Key Names"
-    bl_description = "Insert Shape Key Names from clipboard. Each name in one line"
+    bl_description = "Insert Shape Key Names from Clipboard (Each name per Row)"
     bl_options = {'INTERNAL'}   
 
     def execute(self, context):
@@ -314,7 +312,7 @@ class SKT_OT_insertKeyNames(Operator):
                 item.obj_type = "STRING"
                 item.obj_id = len(scn.customshapekeylist)
                 scn.shapekeytransfer_list_index = len(scn.customshapekeylist)-1
-        self.report({'INFO'}, "Added shape key names from clipboard")
+        self.report({'INFO'}, "Added shape key names from Clipboard")
         return{'FINISHED'}
 
 
@@ -322,10 +320,10 @@ class SKT_OT_insertKeyNames(Operator):
 # ----------------------------------------------------------
 
 class SKT_OT_transferShapeKeys(Operator):
-    """Transfers shape keys in selected meshes"""
+    """Transfers Shape Keys to Selected Mesh"""
     bl_idname = "skt.transfer_shape_keys"
     bl_label = "Transfer Shape Keys"
-    bl_description = 'The two meshes must be overlapping or really close'
+    bl_description = "The two meshes should overlap each other or positioned pretty close"
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
     
@@ -364,10 +362,10 @@ class SKT_OT_transferShapeKeys(Operator):
 # ----------------------------------------------------------
 
 class SKT_OT_transferExcludedShapeKeys(Operator):
-    """Transfers shape keys from excluded shape keys list in selected meshes"""
+    """Transfers Shape Keys from excluded Shape key list"""
     bl_idname = "skt.transfer_excluded_shape_keys"
     bl_label = "Transfer Excluded Shape Keys Only"
-    bl_description = 'The two meshes must be overlapping or really close'
+    bl_description = "The two meshes should overlap each other or positioned pretty close"
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
 
@@ -406,10 +404,10 @@ class SKT_OT_transferExcludedShapeKeys(Operator):
 # ----------------------------------------------------------
 
 class SKT_OT_removeShapeKeys(Operator):
-    """Remove all Shape Keys in source mesh"""
-    bl_idname = "skt.remove_shape_keys"
-    bl_label = "Remove Shape Keys in src"
-    bl_description = 'Remove all Shape Keys in source mesh'
+    """Remove all Shape Keys of Source Mesh"""
+    bl_idname = "skt.remove_src_shape_keys"
+    bl_label = "Remove Shape Keys of Source"
+    bl_description = "Remove all Shape Keys of Source Mesh"
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
 
@@ -535,10 +533,10 @@ class SKT_OT_clearList(Operator):
 # ----------------------------------------------------------
 
 class SKT_OT_removeDuplicates(Operator):
-    """Remove all duplicates"""
+    """Remove all duplicates in the list"""
     bl_idname = "customshapekeylist.remove_duplicates"
-    bl_label = "Remove Duplicates"
-    bl_description = "Remove all duplicates"
+    bl_label = "Remove Doubles"
+    bl_description = "Remove all Duplicates in the List"
     bl_options = {'INTERNAL'}
 
     def find_duplicates(self, context):
@@ -606,17 +604,21 @@ class SKT_PT_view3D(Panel):
 
     def draw(self, context):
         layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False  # No animation.
+
         scn = context.scene
         skt = scn.shapekeytransfer
-
-        icon_expand = "DISCLOSURE_TRI_RIGHT"
-        icon_collapse = "DISCLOSURE_TRI_DOWN"
         
+        '''
         if not can_transfer_keys(context):
-            layout.label(text="Select required meshes", icon = 'INFO')
-        
+            layout.label(text="Set required meshes", icon='INFO')
+        '''
+
         layout.prop(skt, "src_mesh", text="Source Mesh") 
         layout.prop(skt, "dest_mesh", text="Destination Mesh")
+
+        layout.separator()
         layout.operator(SKT_OT_transferShapeKeys.bl_idname, icon='ARROW_LEFTRIGHT')
         layout.operator(SKT_OT_transferExcludedShapeKeys.bl_idname, icon='KEYINGSET')
         layout.separator()
@@ -636,13 +638,12 @@ class SKT_PT_view3D(Panel):
         col.operator(SKT_OT_actions.bl_idname, icon='TRIA_DOWN', text="").action = 'DOWN'
         col.operator(SKT_OT_actions.bl_idname, icon='RECOVER_LAST', text="").action = 'DEFAULT'
 
-        row = layout.row()
-        col = row.column(align=True)        
+        col = layout.column(align=True)        
         row = col.row(align=True)
-        row.operator(SKT_OT_clearList.bl_idname, icon="X")
         row.operator(SKT_OT_removeDuplicates.bl_idname, icon="FORCE_VORTEX")
-        row = layout.row()
-        col = row.column(align=True)        
-        row = col.row(align=True)
-        row.operator(SKT_OT_copyKeyNames.bl_idname, icon="COPYDOWN")
-        row.operator(SKT_OT_insertKeyNames.bl_idname, icon="IMPORT")
+        row.operator(SKT_OT_clearList.bl_idname, icon="X")
+        col = col.column(align=True)
+        col.operator(SKT_OT_copyKeyNames.bl_idname, icon="COPYDOWN")
+        col.operator(SKT_OT_insertKeyNames.bl_idname, icon="IMPORT")
+
+        layout.separator()
