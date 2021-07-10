@@ -22,19 +22,12 @@
 import bpy
 import bmesh
 from mathutils import Vector
-from . import bl_info
-from .uisettings import TransferShapeKeysOperatorUI
 
-from bpy.props import (StringProperty,
-                       BoolProperty,
-                       IntProperty,
-                       FloatProperty,
-                       FloatVectorProperty,
-                       EnumProperty,
-                       PointerProperty,
-                       )
+from bpy.types import (Operator, 
+                       UIList, 
+                       Panel)
 
-__reload_order_index__ = 1
+# __reload_order_index__ = 1
 
 # Class which handles shape key transfers
 # ----------------------------------------------------------
@@ -249,12 +242,13 @@ class ShapeKeyTransfer:
 
 SKT = ShapeKeyTransfer()
 
+
 # Helper function to check if a valid selection is made
 # ----------------------------------------------------------
 
-def can_transfer_keys():
+def can_transfer_keys(context):
     """Checks if selected source and destination meshes are valid"""
-    skt = bpy.context.scene.shapekeytransferSettings
+    skt = context.scene.shapekeytransfer
     if(skt.src_mesh and skt.dest_mesh):
         if(skt.src_mesh == skt.dest_mesh):
             return False
@@ -263,24 +257,25 @@ def can_transfer_keys():
     else:
         return False
 
-# Copy all Shape Key names to clipboard Button (Operator)
+
+# Copy all Shape Key names to Clipboard Button
 # ----------------------------------------------------------
 
-class CopyKeyNamesOperator(bpy.types.Operator):
-    """Copy all Shape Key names to clipboard"""
-    bl_idname = "fblah.copy_key_names"
+class SKT_OT_copyKeyNames(Operator):
+    """Copy all Shape Key names to Clipboard"""
+    bl_idname = "skt.copy_key_names"
     bl_label = "Copy Shape Key Names"
-    bl_description = "Copy Shape Key Names from Source Mesh to clipboard"
+    bl_description = "Copy Shape Key Names from Source Mesh to Clipboard"
     bl_options = {'INTERNAL'}
 
     @classmethod
     def poll(cls, context):
-        skt = bpy.context.scene.shapekeytransferSettings
+        skt = context.scene.shapekeytransfer
         return (skt.src_mesh is not None)
 
     def execute(self, context):
         global SKT
-        skt = bpy.context.scene.shapekeytransferSettings        
+        skt = context.scene.shapekeytransfer        
         if(skt.src_mesh):
             if(SKT.get_shape_keys_mesh(skt.src_mesh)):
                 self.report({'INFO'}, SKT.message)                
@@ -291,56 +286,58 @@ class CopyKeyNamesOperator(bpy.types.Operator):
                     if(key == "Basis"):
                         continue
                     temp_str += key + "\n"
-                bpy.context.window_manager.clipboard = temp_str
-                self.report({'INFO'}, "Copied to clipboard")
+                context.window_manager.clipboard = temp_str
+                self.report({'INFO'}, "Copied to Clipboard")
         else:
             self.report({'INFO'}, "Invalid Source Mesh")
         return{'FINISHED'}
 
-# Copy all Shape Key names from clipboard Button (Operator)
+
+# Copy all Shape Key names from clipboard Button
 # ----------------------------------------------------------
 
-class InsertKeyNamesOperator(bpy.types.Operator):
-    """Copy all Shape Key names from clipboard"""
-    bl_idname = "fblah.insert_key_names"
+class SKT_OT_insertKeyNames(Operator):
+    """Copy all Shape Key Names from the Clipboard"""
+    bl_idname = "skt.insert_key_names"
     bl_label = "Insert Shape Key Names"
-    bl_description = "Insert Shape Key Names from clipboard. Each name in one line"
+    bl_description = "Insert Shape Key Names from Clipboard (Each name per Row)"
     bl_options = {'INTERNAL'}   
 
     def execute(self, context):
         scn = context.scene
-        for key in bpy.context.window_manager.clipboard.split("\n"):
+        for key in context.window_manager.clipboard.split("\n"):
             if(len(key)):
                 item = scn.customshapekeylist.add()
                 item.name = key
                 item.obj_type = "STRING"
                 item.obj_id = len(scn.customshapekeylist)
-                scn.customshapekeylist_index = len(scn.customshapekeylist)-1
-        self.report({'INFO'}, "Added shape key names from clipboard")
+                scn.shapekeytransfer_list_index = len(scn.customshapekeylist)-1
+        self.report({'INFO'}, "Added shape key names from Clipboard")
         return{'FINISHED'}
+
+
 # Transfer Shape Keys Button (Operator)
 # ----------------------------------------------------------
 
-class TransferShapeKeyOperator(bpy.types.Operator):
-    """Transfers shape keys in selected meshes"""
-    bl_idname = "fblah.transfer_shape_keys"
+class SKT_OT_transferShapeKeys(Operator):
+    """Transfers Shape Keys to Selected Mesh"""
+    bl_idname = "skt.transfer_shape_keys"
     bl_label = "Transfer Shape Keys"
-    bl_description = 'The two meshes must be overlapping or really close'
+    bl_description = "The two meshes should overlap each other or positioned pretty close"
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
     
     @classmethod
     def poll(cls, context):
-        return can_transfer_keys()
+        return can_transfer_keys(context)
 
     def execute(self, context):
         global SKT
-        skt = bpy.context.scene.shapekeytransferSettings
-        sktop = bpy.context.scene.shapekeytransferOperatorSettings 
-        SKT.increment_radius = sktop.increment_radius
-        SKT.use_one_vertex   = sktop.use_one_vertex
-        SKT.skip_vertices_with_no_pair = sktop.skip_unpaired_vertices
-        SKT.number_of_increments = sktop.number_of_increments
+        skt = context.scene.shapekeytransfer
+        SKT.increment_radius = skt.increment_radius
+        SKT.use_one_vertex   = skt.use_one_vertex
+        SKT.skip_vertices_with_no_pair = skt.skip_unpaired_vertices
+        SKT.number_of_increments = skt.number_of_increments
 
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
         result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh)
@@ -352,39 +349,37 @@ class TransferShapeKeyOperator(bpy.types.Operator):
     
     def draw(self, context):
         layout = self.layout
-        sktop = bpy.context.scene.shapekeytransferOperatorSettings 
+        skt = context.scene.shapekeytransfer
         col = layout.column()
         col.label(text="Vertex influence:")       
-        col.prop(sktop, "increment_radius")
-        col.prop(sktop, "use_one_vertex")
-        col.prop(sktop, "skip_unpaired_vertices")
-        col.prop(sktop, "number_of_increments")
+        col.prop(skt, "increment_radius")
+        col.prop(skt, "use_one_vertex")
+        col.prop(skt, "skip_unpaired_vertices")
+        col.prop(skt, "number_of_increments")
+
 
 # Transfer Shape Keys in excluded shape keys list Button  (Operator)
 # ----------------------------------------------------------
 
-class TransferExcludedShapeKeyOperator(bpy.types.Operator):
-    """Transfers shape keys from excluded shape keys list in selected meshes"""
-    bl_idname = "fblah.transfer_excluded_shape_keys"
+class SKT_OT_transferExcludedShapeKeys(Operator):
+    """Transfers Shape Keys from excluded Shape key list"""
+    bl_idname = "skt.transfer_excluded_shape_keys"
     bl_label = "Transfer Excluded Shape Keys Only"
-    bl_description = 'The two meshes must be overlapping or really close'
+    bl_description = "The two meshes should overlap each other or positioned pretty close"
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
 
-    
-
     @classmethod
     def poll(cls, context):
-        return can_transfer_keys()
+        return can_transfer_keys(context)
 
     def execute(self, context):
         global SKT
-        skt = bpy.context.scene.shapekeytransferSettings        
-        sktop = bpy.context.scene.shapekeytransferOperatorSettings 
-        SKT.increment_radius = sktop.increment_radius
-        SKT.use_one_vertex   = sktop.use_one_vertex
-        SKT.skip_vertices_with_no_pair = sktop.skip_unpaired_vertices
-        SKT.number_of_increments = sktop.number_of_increments
+        skt = context.scene.shapekeytransfer
+        SKT.increment_radius = skt.increment_radius
+        SKT.use_one_vertex   = skt.use_one_vertex
+        SKT.skip_vertices_with_no_pair = skt.skip_unpaired_vertices
+        SKT.number_of_increments = skt.number_of_increments
         
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
         result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh, True)
@@ -395,35 +390,35 @@ class TransferExcludedShapeKeyOperator(bpy.types.Operator):
         return {'FINISHED'}
     
     def draw(self, context):
-        sktop = bpy.context.scene.shapekeytransferOperatorSettings
+        skt = context.scene.shapekeytransfer
         layout = self.layout
         col = layout.column()
         col.label(text="Vertex influence:")       
-        col.prop(sktop, "increment_radius")
-        col.prop(sktop, "use_one_vertex")
-        col.prop(sktop, "skip_unpaired_vertices")
-        col.prop(sktop, "number_of_increments")
+        col.prop(skt, "increment_radius")
+        col.prop(skt, "use_one_vertex")
+        col.prop(skt, "skip_unpaired_vertices")
+        col.prop(skt, "number_of_increments")
         
 
 # Remove all Shape Keys in source mesh Button (Operator)
 # ----------------------------------------------------------
 
-class RemoveShapeKeyOperator(bpy.types.Operator):
-    """Remove all Shape Keys in source mesh"""
-    bl_idname = "fblah.remove_shape_keys"
-    bl_label = "Remove Shape Keys in src"
-    bl_description = 'Remove all Shape Keys in source mesh'
+class SKT_OT_removeShapeKeys(Operator):
+    """Remove all Shape Keys of Source Mesh"""
+    bl_idname = "skt.remove_src_shape_keys"
+    bl_label = "Remove Shape Keys of Source"
+    bl_description = "Remove all Shape Keys of Source Mesh"
     bl_context = 'objectmode'
     bl_options = {'REGISTER', 'INTERNAL','UNDO'}
 
     @classmethod
     def poll(cls, context):
-        skt = bpy.context.scene.shapekeytransferSettings
+        skt = context.scene.shapekeytransfer
         return (skt.src_mesh is not None)
 
     def execute(self, context):
         global SKT
-        skt = bpy.context.scene.shapekeytransferSettings        
+        skt = context.scene.shapekeytransfer        
         if(skt.src_mesh):
             ob = SKT.get_parent(skt.src_mesh)
             if(ob.data.shape_keys):
@@ -443,7 +438,7 @@ class RemoveShapeKeyOperator(bpy.types.Operator):
 # Manage customshapekeylist items (Operator)
 # ----------------------------------------------------------
 
-class CUSTOM_OT_actions(bpy.types.Operator):
+class SKT_OT_actions(Operator):
     """Move items up and down, add and remove"""
     bl_idname = "customshapekeylist.list_action"
     bl_label = "List Actions"
@@ -460,7 +455,7 @@ class CUSTOM_OT_actions(bpy.types.Operator):
 
     def invoke(self, context, event):
         scn = context.scene
-        idx = scn.customshapekeylist_index
+        idx = scn.shapekeytransfer_list_index
 
         try:
             item = scn.customshapekeylist[idx]
@@ -470,30 +465,30 @@ class CUSTOM_OT_actions(bpy.types.Operator):
             if self.action == 'DOWN' and idx < len(scn.customshapekeylist) - 1:
                 item_next = scn.customshapekeylist[idx+1].name
                 scn.customshapekeylist.move(idx, idx+1)
-                scn.customshapekeylist_index += 1
-                info = 'Item "%s" moved to position %d' % (item.name, scn.customshapekeylist_index + 1)
+                scn.shapekeytransfer_list_index += 1
+                info = 'Item "%s" moved to position %d' % (item.name, scn.shapekeytransfer_list_index + 1)
                 self.report({'INFO'}, info)
 
             elif self.action == 'UP' and idx >= 1:
                 item_prev = scn.customshapekeylist[idx-1].name
                 scn.customshapekeylist.move(idx, idx-1)
-                scn.customshapekeylist_index -= 1
-                info = 'Item "%s" moved to position %d' % (item.name, scn.customshapekeylist_index + 1)
+                scn.shapekeytransfer_list_index -= 1
+                info = 'Item "%s" moved to position %d' % (item.name, scn.shapekeytransfer_list_index + 1)
                 self.report({'INFO'}, info)
 
             elif self.action == 'REMOVE':
                 info = 'Item "%s" removed from list' % (scn.customshapekeylist[idx].name)
-                scn.customshapekeylist_index -= 1
+                scn.shapekeytransfer_list_index -= 1
                 scn.customshapekeylist.remove(idx)
                 self.report({'INFO'}, info)
             
         if self.action == 'ADD':                               
-            scn = bpy.context.scene
+            scn = context.scene
             item = scn.customshapekeylist.add()
             item.name = "key"
             item.obj_type = "STRING"
             item.obj_id = len(scn.customshapekeylist)
-            scn.customshapekeylist_index = len(scn.customshapekeylist)-1             
+            scn.shapekeytransfer_list_index = len(scn.customshapekeylist)-1             
             info = '"%s" added to list' % (item.name)
             self.report({'INFO'}, info)
         
@@ -503,7 +498,7 @@ class CUSTOM_OT_actions(bpy.types.Operator):
                 item.name = key
                 item.obj_type = "STRING"
                 item.obj_id = len(scn.customshapekeylist)
-                scn.customshapekeylist_index = len(scn.customshapekeylist)-1
+                scn.shapekeytransfer_list_index = len(scn.customshapekeylist)-1
                 info = '"%s" added to list' % (item.name)
                 self.report({'INFO'}, info)
         
@@ -512,7 +507,7 @@ class CUSTOM_OT_actions(bpy.types.Operator):
 # Clear customshapekeylist items (Operator)
 # ----------------------------------------------------------
 
-class CUSTOM_OT_clearList(bpy.types.Operator):
+class SKT_OT_clearList(Operator):
     """Clear all items of the list"""
     bl_idname = "customshapekeylist.clear_list"
     bl_label = "Clear List"
@@ -537,11 +532,11 @@ class CUSTOM_OT_clearList(bpy.types.Operator):
 # Remove duplicates among customshapekeylist items (Operator)
 # ----------------------------------------------------------
 
-class CUSTOM_OT_removeDuplicates(bpy.types.Operator):
-    """Remove all duplicates"""
+class SKT_OT_removeDuplicates(Operator):
+    """Remove all duplicates in the list"""
     bl_idname = "customshapekeylist.remove_duplicates"
-    bl_label = "Remove Duplicates"
-    bl_description = "Remove all duplicates"
+    bl_label = "Remove Doubles"
+    bl_description = "Remove all Duplicates in the List"
     bl_options = {'INTERNAL'}
 
     def find_duplicates(self, context):
@@ -567,7 +562,7 @@ class CUSTOM_OT_removeDuplicates(bpy.types.Operator):
             scn.customshapekeylist.remove(i)
             removed_items.append(i)
         if removed_items:
-            scn.customshapekeylist_index = len(scn.customshapekeylist)-1
+            scn.shapekeytransfer_list_index = len(scn.customshapekeylist)-1
             info = ', '.join(map(str, removed_items))
             self.report({'INFO'}, "Removed indices: %s" % (info))
         else:
@@ -580,7 +575,7 @@ class CUSTOM_OT_removeDuplicates(bpy.types.Operator):
 # customshapekeylist items (UIList)
 # ----------------------------------------------------------
 
-class CUSTOM_UL_items(bpy.types.UIList):
+class SKT_UL_items(UIList):
     """Item in customshapekeylist"""
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         #split = layout.split(0.3)
@@ -595,10 +590,9 @@ class CUSTOM_UL_items(bpy.types.UIList):
 # Main addon panel (Panel)
 # ----------------------------------------------------------
 
-class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
+class SKT_PT_view3D(Panel):
     """Shape Key Tools Panel layout"""
-    bl_label = "Shape Key Tools"
-    bl_idname = "OBJECT_SHAPE_KEY_TRANSFER_PANEL"
+    bl_label = "Shape Key Transfer"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_context = 'objectmode'
@@ -610,43 +604,46 @@ class VIEW3D_PT_tools_ShapeKeyTransfer(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        scn = bpy.context.scene
-        skt = context.scene.shapekeytransferSettings
+        layout.use_property_split = True
+        layout.use_property_decorate = False  # No animation.
 
-        icon_expand = "DISCLOSURE_TRI_RIGHT"
-        icon_collapse = "DISCLOSURE_TRI_DOWN"
+        scn = context.scene
+        skt = scn.shapekeytransfer
         
-        if(not can_transfer_keys()):
-            layout.label(text="Select required meshes", icon = 'INFO')
-        
+        '''
+        if not can_transfer_keys(context):
+            layout.label(text="Set required meshes", icon='INFO')
+        '''
+
         layout.prop(skt, "src_mesh", text="Source Mesh") 
         layout.prop(skt, "dest_mesh", text="Destination Mesh")
-        layout.operator('fblah.transfer_shape_keys', icon='ARROW_LEFTRIGHT')
-        layout.operator('fblah.transfer_excluded_shape_keys', icon='KEYINGSET') #ALIGN ICON no longer available
+
         layout.separator()
-        layout.operator('fblah.remove_shape_keys', icon='CANCEL')
+        layout.operator(SKT_OT_transferShapeKeys.bl_idname, icon='ARROW_LEFTRIGHT')
+        layout.operator(SKT_OT_transferExcludedShapeKeys.bl_idname, icon='KEYINGSET')
+        layout.separator()
+        layout.operator(SKT_OT_removeShapeKeys.bl_idname, icon='CANCEL')
 
         layout.separator()
         layout.label(text="Excluded Shape Keys")
-        rows = 2
+        rows = 5
         row = layout.row()
-        row.template_list("CUSTOM_UL_items", "", scn, "customshapekeylist", scn, "customshapekeylist_index", rows=rows)
+        row.template_list("SKT_UL_items", "", scn, "customshapekeylist", scn, "shapekeytransfer_list_index", rows=rows)
 
         col = row.column(align=True)
-        col.operator("customshapekeylist.list_action", icon='PLUS', text="").action = 'ADD'
-        col.operator("customshapekeylist.list_action", icon='REMOVE', text="").action = 'REMOVE'
+        col.operator(SKT_OT_actions.bl_idname, icon='PLUS', text="").action = 'ADD'
+        col.operator(SKT_OT_actions.bl_idname, icon='REMOVE', text="").action = 'REMOVE'
         col.separator()
-        col.operator("customshapekeylist.list_action", icon='TRIA_UP', text="").action = 'UP'
-        col.operator("customshapekeylist.list_action", icon='TRIA_DOWN', text="").action = 'DOWN'
-        col.operator("customshapekeylist.list_action", icon='RECOVER_LAST', text="").action = 'DEFAULT'
+        col.operator(SKT_OT_actions.bl_idname, icon='TRIA_UP', text="").action = 'UP'
+        col.operator(SKT_OT_actions.bl_idname, icon='TRIA_DOWN', text="").action = 'DOWN'
+        col.operator(SKT_OT_actions.bl_idname, icon='RECOVER_LAST', text="").action = 'DEFAULT'
 
-        row = layout.row()
-        col = row.column(align=True)        
+        col = layout.column(align=True)        
         row = col.row(align=True)
-        row.operator("customshapekeylist.clear_list", icon="X")
-        row.operator("customshapekeylist.remove_duplicates", icon="FORCE_VORTEX")
-        row = layout.row()
-        col = row.column(align=True)        
-        row = col.row(align=True)
-        row.operator("fblah.copy_key_names", icon="COPYDOWN")
-        row.operator("fblah.insert_key_names", icon="IMPORT")
+        row.operator(SKT_OT_removeDuplicates.bl_idname, icon="FORCE_VORTEX")
+        row.operator(SKT_OT_clearList.bl_idname, icon="X")
+        col = col.column(align=True)
+        col.operator(SKT_OT_copyKeyNames.bl_idname, icon="COPYDOWN")
+        col.operator(SKT_OT_insertKeyNames.bl_idname, icon="IMPORT")
+
+        layout.separator()

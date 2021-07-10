@@ -19,9 +19,6 @@
 #
 # ----------------------------------------------------------
 
-# Addon info
-# ----------------------------------------------------------
-
 bl_info = {
     "name": "Shape Key Transfer",
     "description": "Copies shape keys from one mesh to another.",
@@ -34,66 +31,42 @@ bl_info = {
     "category": 'Mesh'}
 
 
-# register
-# ----------------------------------------------------------
-
 import bpy
-from bpy.props import (PointerProperty, CollectionProperty, StringProperty)
+from bpy.props import PointerProperty, CollectionProperty
 from . uisettings import *
 from . shapekeytransfer import *
 
-    
-# Custom scene properties
 
-bpy.types.Scene.customshapekeylist_index = IntProperty()
-bpy.types.Scene.srcMeshShapeKey = StringProperty()
-bpy.types.Scene.destMeshShapeKey = StringProperty()
-def load_custom_properties():
-    bpy.types.Scene.shapekeytransferSettings = PointerProperty(type=UISettings)
-    bpy.types.Scene.customshapekeylist = CollectionProperty(type=ShapeKeyItem)
-    bpy.types.Scene.shapekeytransferOperatorSettings = PointerProperty(type=TransferShapeKeysOperatorUI)
-
-#bpy.app.handlers.load_post.append(load_custom_properties)
+classes = (
+    SKT_PG_settings,
+    SKT_PG_shapeKeyListItem,
+    SKT_OT_copyKeyNames,
+    SKT_OT_insertKeyNames,
+    SKT_OT_transferShapeKeys,
+    SKT_OT_transferExcludedShapeKeys,
+    SKT_OT_removeShapeKeys,
+    SKT_OT_actions,
+    SKT_OT_clearList,
+    SKT_OT_removeDuplicates,
+    SKT_UL_items,
+    SKT_PT_view3D
+)
 
 def register():
-    bpy.utils.register_class(UISettings)
-    bpy.utils.register_class(TransferShapeKeysOperatorUI)
-    bpy.utils.register_class(ShapeKeyItem)
-    load_custom_properties()
-    
-    bpy.utils.register_class(CopyKeyNamesOperator)
-    bpy.utils.register_class(InsertKeyNamesOperator)
-    bpy.utils.register_class(TransferShapeKeyOperator)
-    bpy.utils.register_class(TransferExcludedShapeKeyOperator)
-    bpy.utils.register_class(RemoveShapeKeyOperator)
-    bpy.utils.register_class(CUSTOM_OT_actions)
-    bpy.utils.register_class(CUSTOM_OT_clearList)
-    bpy.utils.register_class(CUSTOM_OT_removeDuplicates)
-    bpy.utils.register_class(CUSTOM_UL_items)
+    from bpy.utils import register_class
+    for cls in classes:
+        register_class(cls)
 
-    
+    bpy.types.Scene.shapekeytransfer_list_index = IntProperty()
+    bpy.types.Scene.shapekeytransfer = PointerProperty(type=SKT_PG_settings)
+    bpy.types.Scene.customshapekeylist = CollectionProperty(type=SKT_PG_shapeKeyListItem)
 
-    bpy.utils.register_class(VIEW3D_PT_tools_ShapeKeyTransfer)
-    
-
-# unregister
-# ----------------------------------------------------------
 
 def unregister():    
-    bpy.utils.unregister_class(UISettings)
-    bpy.utils.unregister_class(TransferShapeKeysOperatorUI)
-    bpy.utils.unregister_class(ShapeKeyItem)
-    
-    bpy.utils.unregister_class(CopyKeyNamesOperator)
-    bpy.utils.unregister_class(InsertKeyNamesOperator)
-    bpy.utils.unregister_class(TransferShapeKeyOperator)
-    bpy.utils.unregister_class(TransferExcludedShapeKeyOperator)
-    bpy.utils.unregister_class(RemoveShapeKeyOperator)
-    bpy.utils.unregister_class(CUSTOM_OT_actions)
-    bpy.utils.unregister_class(CUSTOM_OT_clearList)
-    bpy.utils.unregister_class(CUSTOM_OT_removeDuplicates)
-    bpy.utils.unregister_class(CUSTOM_UL_items)
-    bpy.utils.unregister_class(VIEW3D_PT_tools_ShapeKeyTransfer)
-    del bpy.types.Scene.shapekeytransferSettings
+    from bpy.utils import unregister_class
+    for cls in reversed(classes):
+        unregister_class(cls)
+
+    del bpy.types.Scene.shapekeytransfer
     del bpy.types.Scene.customshapekeylist
-    del bpy.types.Scene.shapekeytransferOperatorSettings
+    del bpy.types.Scene.shapekeytransfer_list_index
