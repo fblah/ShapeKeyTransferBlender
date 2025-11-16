@@ -21,7 +21,9 @@
 
 import bpy
 import bmesh
+import mathutils
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 from bpy.types import (Operator, 
                        UIList, 
@@ -62,6 +64,7 @@ class ShapeKeyTransfer:
         self.src_chosen_vertices  = []
         self.message              = ""
         self.skip_vertices_with_no_pair = False
+        self.smooth_mode          = True
 
     # select required vertices within a radius and return array of indices
     def select_vertices(self, center, radius):            
@@ -109,34 +112,70 @@ class ShapeKeyTransfer:
     # update 1 vertex of destination mesh
     def update_vertex(self):
         if(self.current_vertex_index >= self.total_vertices ):
-            return False
-
-        if(self.do_once_per_vertex):
-            #mathutils now uses the PEP 465 binary operator for multiplying matrices change * to @
-            self.current_vertex = self.dest_mesh.matrix_world @ self.dest_mesh.data.shape_keys.key_blocks[0].data[self.current_vertex_index].co       
-            self.src_chosen_vertices = self.select_required_verts(self.current_vertex,0)   
-            self.do_once_per_vertex = False
-
-        if(len(self.src_chosen_vertices) == 0):
-            self.message = ("Failed to find surrounding vertices | Try increasing increment radius | vertex index " + str(self.current_vertex_index) + " at shape key index " + str(self.src_shape_key_index))
-            self.current_vertex_index += 1
-            if(not self.skip_vertices_with_no_pair):
-                return True
-            else:
                 return False
+        
+        if(self.smooth_mode):
+            ## Update the vertex using a barycentric transformation
+            ## https://docs.blender.org/api/current/mathutils.geometry.html#mathutils.geometry.barycentric_transform
+            
+            # Get the position of the vertex to be modified
+            target_vertex = self.dest_mesh.matrix_world @ self.dest_mesh.data.shape_keys.key_blocks[0].data[self.current_vertex_index].co
+            
+            # Find the closest point on the source mesh without any shape keys applied, and the face index for that point
+            close_location, close_normal, close_tri, close_distance = self.src_bvh.find_nearest(target_vertex)
 
-        result_position = Vector()    
-        for v in self.src_chosen_vertices:
-            result_position +=  self.src_mesh.data.shape_keys.key_blocks[0].data[v].co    
-        result_position /= len(self.src_chosen_vertices)
+            # Get the vertices for the nearest triangle on the source mesh
+            vert_a = self.src_bmesh.faces[close_tri].verts[0].index
+            vert_b = self.src_bmesh.faces[close_tri].verts[1].index
+            vert_c = self.src_bmesh.faces[close_tri].verts[2].index
 
-        result_position2 = Vector()
-        for v in self.src_chosen_vertices:
-            result_position2 += self.src_mesh.data.shape_keys.key_blocks[self.src_shape_key_index].data[v].co        
-        result_position2 /= len(self.src_chosen_vertices)    
-        result = result_position2 - result_position + self.current_vertex        
-        self.set_vertex_position(result)
-        return False
+            # Get the vertex positions for the nearest triangle on the source mesh before shape key application
+            origin_a = self.src_mesh.data.shape_keys.key_blocks[0].data[vert_a].co
+            origin_b = self.src_mesh.data.shape_keys.key_blocks[0].data[vert_b].co
+            origin_c = self.src_mesh.data.shape_keys.key_blocks[0].data[vert_c].co
+
+            # Get the vertex positions for the nearest triangle on the source mesh after shape key application
+            dest_a = self.src_mesh.data.shape_keys.key_blocks[self.src_shape_key_index].data[vert_a].co
+            dest_b = self.src_mesh.data.shape_keys.key_blocks[self.src_shape_key_index].data[vert_b].co
+            dest_c = self.src_mesh.data.shape_keys.key_blocks[self.src_shape_key_index].data[vert_c].co
+
+            # Determine the location the nearest point moved to after shape key application using a barycentric transformation
+            moved_location = mathutils.geometry.barycentric_transform(close_location, origin_a, origin_b, origin_c, dest_a, dest_b, dest_c)
+
+            # Find the change in location from the closest position and the new position
+            change_in_location = moved_location - close_location
+
+            # Apply the change in position to the destination vertex
+            result = change_in_location + target_vertex        
+            self.set_vertex_position(result)
+            return False
+        else:
+            if(self.do_once_per_vertex):
+                #mathutils now uses the PEP 465 binary operator for multiplying matrices change * to @
+                self.current_vertex = self.dest_mesh.matrix_world @ self.dest_mesh.data.shape_keys.key_blocks[0].data[self.current_vertex_index].co       
+                self.src_chosen_vertices = self.select_required_verts(self.current_vertex,0)   
+                self.do_once_per_vertex = False
+
+            if(len(self.src_chosen_vertices) == 0):
+                self.message = ("Failed to find surrounding vertices | Try increasing increment radius | vertex index " + str(self.current_vertex_index) + " at shape key index " + str(self.src_shape_key_index))
+                self.current_vertex_index += 1
+                if(not self.skip_vertices_with_no_pair):
+                    return True
+                else:
+                    return False
+
+            result_position = Vector()    
+            for v in self.src_chosen_vertices:
+                result_position +=  self.src_mesh.data.shape_keys.key_blocks[0].data[v].co    
+            result_position /= len(self.src_chosen_vertices)
+
+            result_position2 = Vector()
+            for v in self.src_chosen_vertices:
+                result_position2 += self.src_mesh.data.shape_keys.key_blocks[self.src_shape_key_index].data[v].co        
+            result_position2 /= len(self.src_chosen_vertices)    
+            result = result_position2 - result_position + self.current_vertex        
+            self.set_vertex_position(result)
+            return False
 
     # store shapekey index 
     def update_global_shapekey_indices(self, p_key_name): 
@@ -153,10 +192,19 @@ class ShapeKeyTransfer:
                 return ob
         return None
 
-    def transfer_shape_keys(self, src, dest, use_only_excluded_shape_keys = False):
+    def transfer_shape_keys(self, src, dest, use_only_excluded_shape_keys = False, smooth_mode = True):
         self.src_mesh   = self.get_parent(src)
         self.dest_mesh  = self.get_parent(dest)
         self.src_mwi    = self.src_mesh.matrix_world.inverted()
+        self.smooth_mode = smooth_mode
+
+        # Prepare meta source mesh information for smooth mode
+        if(self.smooth_mode):
+            self.src_bmesh = bmesh.new()
+            self.src_bmesh.from_mesh(self.src_mesh.data)
+            bmesh.ops.triangulate(self.src_bmesh, faces=self.src_bmesh.faces[:])
+            self.src_bvh = BVHTree.FromBMesh(self.src_bmesh)
+            self.src_bmesh.faces.ensure_lookup_table()
         
         self.current_vertex_index = 0
 
@@ -164,11 +212,15 @@ class ShapeKeyTransfer:
 
         if(not(self.src_mesh and self.dest_mesh)):
             self.message = "The meshes are not valid!"
+            if(self.smooth_mode):
+                self.src_bmesh.free()
             return True
         if(self.specify_end_vertex == False):
             self.total_vertices = len(self.dest_mesh.data.vertices)            
         if(not hasattr(self.src_mesh.data.shape_keys, "key_blocks")):
             self.message = "There are no Shape Keys in the source mesh!"
+            if(self.smooth_mode):
+                self.src_bmesh.free()
             return True
         # Check if dest_mesh has any shape key if not create one
         if(not hasattr(self.dest_mesh.data.shape_keys, "key_blocks")):
@@ -197,6 +249,8 @@ class ShapeKeyTransfer:
                 for key_name in local_shape_key_list:
                     self.update_global_shapekey_indices(key_name)            
                     if(self.update_vertex()):
+                        if(self.smooth_mode):
+                            self.src_bmesh.free()
                         return True
             else:
                 # Iterate all shape keys 
@@ -206,9 +260,13 @@ class ShapeKeyTransfer:
                     if(not (key_name in self.excluded_shape_keys)):
                         self.update_global_shapekey_indices(key_name)            
                         if(self.update_vertex()):
+                            if(self.smooth_mode):
+                                self.src_bmesh.free()
                             return True
             self.current_vertex_index += 1
         self.message = "Transferred Shape Keys successfully!"
+        if(self.smooth_mode):
+            self.src_bmesh.free()
         return False
     
     # get the default excluded shape keys
@@ -340,7 +398,7 @@ class SKT_OT_transferShapeKeys(Operator):
         SKT.number_of_increments = skt.number_of_increments
 
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
-        result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh)
+        result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh, smooth_mode=skt.smooth_mode)
         if(result):
             self.report({'ERROR'}, SKT.message)            
         else:
@@ -382,7 +440,7 @@ class SKT_OT_transferExcludedShapeKeys(Operator):
         SKT.number_of_increments = skt.number_of_increments
         
         SKT.update_shape_keys_list(context.scene.customshapekeylist)
-        result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh, True)
+        result = SKT.transfer_shape_keys(skt.src_mesh, skt.dest_mesh, True, smooth_mode=skt.smooth_mode)
         if(result):
             self.report({'ERROR'}, SKT.message)            
         else:
@@ -617,6 +675,7 @@ class SKT_PT_view3D(Panel):
 
         layout.prop(skt, "src_mesh", text="Source Mesh") 
         layout.prop(skt, "dest_mesh", text="Destination Mesh")
+        layout.prop(skt, "smooth_mode", text="Smooth Transfer")
 
         layout.separator()
         layout.operator(SKT_OT_transferShapeKeys.bl_idname, icon='ARROW_LEFTRIGHT')

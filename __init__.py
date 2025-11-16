@@ -23,7 +23,7 @@ bl_info = {
     "name": "Shape Key Transfer",
     "description": "Copies shape keys from one mesh to another.",
     "author": "Ajit D'Monte (fBlah), email: ajitdmonte@gmail.com",
-    "version": (1, 0, 2),
+    "version": (1, 0, 3),
     "blender": (2, 93, 0),
     "location": "View3D > Tools > Shape Key Transfer",    
     "warning": "This has not been tested rigorously.",

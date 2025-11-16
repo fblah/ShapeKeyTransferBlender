@@ -51,6 +51,12 @@ class SKT_PG_settings(PropertyGroup):
         options={'ANIMATABLE'}, 
         update=None
         )
+    
+    smooth_mode: BoolProperty(
+        name="Smooth Transfer",
+        description="Transfer by nearest face position.",
+        default = True
+        )
 
     specify_end_vertex: BoolProperty(
         name="Specify End Vertex",
