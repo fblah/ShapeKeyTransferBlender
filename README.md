@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=fblah&project=ShapeKeyTransferBlender&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 ## Shape Key Tools for Blender
 <!-- BADGES/ -->
 <span class="badge-blenderartists"><a href="https://blenderartists.org/t/free-shape-key-transfer-addon" title="Link to Blender Artists forum post"><img src="https://img.shields.io/badge/Blender-Artists-orange.svg?logo=blender&longCache=true&style=popout-square" alt="Blender Artists Forum Post" /></a></span>
